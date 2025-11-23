@@ -1,10 +1,21 @@
 import { useState } from "react";
-import { InventoryItem, ItemStatus, Category, initialItems } from "@/lib/mock-data";
+import { InventoryItem, ItemStatus, initialItems, monthlyStats } from "@/lib/mock-data";
 import { InventoryCard } from "@/components/inventory-card";
 import { AddItemDialog } from "@/components/add-item-dialog";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, ShoppingBag, Home as HomeIcon, Filter } from "lucide-react";
+import { Search, ShoppingBag, BarChart3 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
+} from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
   const [items, setItems] = useState<InventoryItem[]>(initialItems);
@@ -19,11 +30,10 @@ export default function Home() {
     ));
   };
 
-  const handleAddItem = (name: string, category: Category) => {
+  const handleAddItem = (newItemData: Omit<InventoryItem, 'id' | 'lastUpdated' | 'status'>) => {
     const newItem: InventoryItem = {
+      ...newItemData,
       id: Math.random().toString(36).substr(2, 9),
-      name,
-      category,
       status: 'in-stock',
       lastUpdated: new Date().toISOString(),
     };
@@ -33,7 +43,7 @@ export default function Home() {
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = 
-      activeTab === 'all' ? true :
+      activeTab === 'all' || activeTab === 'history' ? true :
       activeTab === 'low' ? (item.status === 'low' || item.status === 'out-of-stock') :
       activeTab === 'stocked' ? item.status === 'in-stock' : true;
     
@@ -42,6 +52,8 @@ export default function Home() {
 
   // Quick stats
   const lowStockCount = items.filter(i => i.status === 'low' || i.status === 'out-of-stock').length;
+  const monthlyBudget = 200; // Mock budget
+  const currentMonthTotal = monthlyStats[monthlyStats.length - 1].total;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -63,43 +75,49 @@ export default function Home() {
 
       <main className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {/* Welcome / Stats */}
-        <div className="bg-secondary/50 rounded-2xl p-6 border border-secondary">
-          <h2 className="font-serif text-2xl font-bold text-secondary-foreground mb-2">
-            Hello! 👋
-          </h2>
-          <p className="text-muted-foreground mb-4">
-            You have <span className="font-bold text-foreground">{items.length}</span> items in your inventory.
-            {lowStockCount > 0 ? (
-              <span className="block mt-1 text-yellow-700 font-medium">
-                ⚠️ {lowStockCount} items need restocking.
-              </span>
-            ) : (
-              <span className="block mt-1 text-primary font-medium">
-                Everything is well stocked!
-              </span>
-            )}
-          </p>
-          
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search items..." 
-              className="pl-9 bg-white border-transparent shadow-sm focus-visible:ring-primary/20"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        {activeTab !== 'history' && (
+          <div className="bg-secondary/50 rounded-2xl p-6 border border-secondary transition-all animate-in fade-in slide-in-from-top-4">
+            <h2 className="font-serif text-2xl font-bold text-secondary-foreground mb-2">
+              Hello! 👋
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              You have <span className="font-bold text-foreground">{items.length}</span> items in your inventory.
+              {lowStockCount > 0 ? (
+                <span className="block mt-1 text-yellow-700 font-medium">
+                  ⚠️ {lowStockCount} items need restocking.
+                </span>
+              ) : (
+                <span className="block mt-1 text-primary font-medium">
+                  Everything is well stocked!
+                </span>
+              )}
+            </p>
+            
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search items..." 
+                className="pl-9 bg-white border-transparent shadow-sm focus-visible:ring-primary/20"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Tabs & List */}
         <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1 rounded-xl">
-            <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">All Items</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-xl">
+            <TabsTrigger value="all" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">All</TabsTrigger>
             <TabsTrigger value="low" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">To Buy</TabsTrigger>
             <TabsTrigger value="stocked" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Stocked</TabsTrigger>
+            <TabsTrigger value="history" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm gap-1">
+              <BarChart3 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Stats</span>
+            </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="mt-0">
+          <TabsContent value="all" className="mt-0 animate-in fade-in zoom-in-95">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredItems.map(item => (
                 <InventoryCard key={item.id} item={item} onUpdateStatus={handleStatusUpdate} />
@@ -112,7 +130,7 @@ export default function Home() {
             </div>
           </TabsContent>
           
-          <TabsContent value="low" className="mt-0">
+          <TabsContent value="low" className="mt-0 animate-in fade-in zoom-in-95">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredItems.map(item => (
                 <InventoryCard key={item.id} item={item} onUpdateStatus={handleStatusUpdate} />
@@ -126,7 +144,7 @@ export default function Home() {
             </div>
           </TabsContent>
           
-          <TabsContent value="stocked" className="mt-0">
+          <TabsContent value="stocked" className="mt-0 animate-in fade-in zoom-in-95">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredItems.map(item => (
                 <InventoryCard key={item.id} item={item} onUpdateStatus={handleStatusUpdate} />
@@ -136,6 +154,73 @@ export default function Home() {
                   <p>No stocked items found.</p>
                 </div>
               )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="history" className="mt-0 space-y-6 animate-in fade-in zoom-in-95">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-serif">Monthly Spending</CardTitle>
+                <CardDescription>Your grocery and household spending over the last 6 months.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyStats} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis 
+                        dataKey="name" 
+                        stroke="hsl(var(--muted-foreground))" 
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis 
+                        stroke="hsl(var(--muted-foreground))" 
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <Tooltip 
+                        cursor={{ fill: 'hsl(var(--muted)/0.4)' }}
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--popover))', 
+                          borderColor: 'hsl(var(--border))',
+                          borderRadius: '8px',
+                          color: 'hsl(var(--popover-foreground))'
+                        }}
+                      />
+                      <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]}>
+                        {monthlyStats.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={index === monthlyStats.length - 1 ? 'hsl(var(--primary))' : 'hsl(var(--primary)/0.6)'} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">This Month</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">${currentMonthTotal}</div>
+                  <p className="text-xs text-muted-foreground">+12% from last month</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-muted-foreground">Items Bought</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{items.filter(i => i.status === 'in-stock').length}</div>
+                  <p className="text-xs text-muted-foreground">In your pantry now</p>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         </Tabs>

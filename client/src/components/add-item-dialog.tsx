@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -18,32 +19,54 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
-import { Category } from "@/lib/mock-data";
-import { Plus } from "lucide-react";
+import { Category, Frequency, InventoryItem } from "@/lib/mock-data";
+import { Plus, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 interface AddItemDialogProps {
-  onAddItem: (name: string, category: Category) => void;
+  onAddItem: (item: Omit<InventoryItem, 'id' | 'lastUpdated' | 'status'>) => void;
 }
 
 export function AddItemDialog({ onAddItem }: AddItemDialogProps) {
   const [name, setName] = useState("");
   const [category, setCategory] = useState<Category>("groceries");
+  const [frequency, setFrequency] = useState<Frequency>("weekly");
+  const [price, setPrice] = useState("");
+  const [note, setNote] = useState("");
+  const [date, setDate] = useState<Date>();
   const [open, setOpen] = useState(false);
+  
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     
-    onAddItem(name, category);
+    onAddItem({
+      name,
+      category,
+      frequency,
+      price: price ? parseFloat(price) : undefined,
+      note: note || undefined,
+      needBy: date ? date.toISOString() : undefined
+    });
+    
     toast({
       title: "Item Added",
       description: `${name} has been added to your inventory.`,
     });
     
+    // Reset form
     setName("");
     setCategory("groceries");
+    setFrequency("weekly");
+    setPrice("");
+    setNote("");
+    setDate(undefined);
     setOpen(false);
   };
 
@@ -54,7 +77,7 @@ export function AddItemDialog({ onAddItem }: AddItemDialogProps) {
           <Plus className="w-4 h-4" /> Add Item
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl text-primary">Add New Item</DialogTitle>
           <DialogDescription>
@@ -63,31 +86,106 @@ export function AddItemDialog({ onAddItem }: AddItemDialogProps) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="name">Item Name</Label>
+            <Label htmlFor="name">Item Name *</Label>
             <Input
               id="name"
               placeholder="e.g., Olive Oil"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="col-span-3"
               autoFocus
+              required
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="category">Category</Label>
-            <Select value={category} onValueChange={(val) => setCategory(val as Category)}>
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="groceries">Groceries</SelectItem>
-                <SelectItem value="household">Household</SelectItem>
-                <SelectItem value="medicine">Medicine</SelectItem>
-                <SelectItem value="personal">Personal Care</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="category">Category</Label>
+              <Select value={category} onValueChange={(val) => setCategory(val as Category)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="groceries">Groceries</SelectItem>
+                  <SelectItem value="household">Household</SelectItem>
+                  <SelectItem value="medicine">Medicine</SelectItem>
+                  <SelectItem value="personal">Personal Care</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="frequency">Frequency</Label>
+              <Select value={frequency} onValueChange={(val) => setFrequency(val as Frequency)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="occasional">Occasional</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="price">Price (Est.)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                <Input
+                  id="price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  className="pl-7"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label>Need By Date</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="note">Note</Label>
+            <Textarea
+              id="note"
+              placeholder="e.g., Brand preference, size, etc."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="resize-none h-20"
+            />
+          </div>
+
           <DialogFooter>
             <Button type="submit">Add Item</Button>
           </DialogFooter>
