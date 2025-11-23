@@ -28,10 +28,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, isSameDay, isAfter, isBefore, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
   const [items, setItems] = useState<InventoryItem[]>(initialItems);
   const [view, setView] = useState<'inventory' | 'stats'>('inventory');
+  const { toast } = useToast();
   
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -56,6 +58,20 @@ export default function Home() {
       lastUpdated: new Date().toISOString(),
     };
     setItems(prev => [newItem, ...prev]);
+  };
+
+  const handleDeleteItem = (id: string) => {
+    setItems(prev => prev.filter(item => item.id !== id));
+    toast({
+      title: "Item Deleted",
+      description: "The item has been removed from your inventory.",
+    });
+  };
+
+  const handleEditItem = (id: string, updates: Partial<InventoryItem>) => {
+    setItems(prev => prev.map(item => 
+      item.id === id ? { ...item, ...updates, lastUpdated: new Date().toISOString() } : item
+    ));
   };
 
   const clearFilters = () => {
@@ -258,7 +274,13 @@ export default function Home() {
             {/* Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredItems.map(item => (
-                <InventoryCard key={item.id} item={item} onUpdateStatus={handleStatusUpdate} />
+                <InventoryCard 
+                  key={item.id} 
+                  item={item} 
+                  onUpdateStatus={handleStatusUpdate}
+                  onDelete={handleDeleteItem}
+                  onEdit={handleEditItem}
+                />
               ))}
               {filteredItems.length === 0 && (
                 <div className="col-span-full py-16 text-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed">

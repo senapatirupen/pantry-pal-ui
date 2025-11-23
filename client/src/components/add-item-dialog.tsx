@@ -18,9 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Category, Frequency, InventoryItem } from "@/lib/mock-data";
-import { Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, Edit2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -28,10 +28,14 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 interface AddItemDialogProps {
-  onAddItem: (item: Omit<InventoryItem, 'id' | 'lastUpdated' | 'status'>) => void;
+  onAddItem?: (item: Omit<InventoryItem, 'id' | 'lastUpdated' | 'status'>) => void;
+  onEditItem?: (id: string, item: Partial<InventoryItem>) => void;
+  existingItem?: InventoryItem;
+  trigger?: React.ReactNode;
 }
 
-export function AddItemDialog({ onAddItem }: AddItemDialogProps) {
+export function AddItemDialog({ onAddItem, onEditItem, existingItem, trigger }: AddItemDialogProps) {
+  const isEditMode = !!existingItem;
   const [name, setName] = useState("");
   const [category, setCategory] = useState<Category>("groceries");
   const [frequency, setFrequency] = useState<Frequency>("weekly");
@@ -42,46 +46,77 @@ export function AddItemDialog({ onAddItem }: AddItemDialogProps) {
   
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    
-    onAddItem({
-      name,
-      category,
-      frequency,
-      price: price ? parseFloat(price) : undefined,
-      note: note || undefined,
-      needBy: date ? date.toISOString() : undefined
-    });
-    
-    toast({
-      title: "Item Added",
-      description: `${name} has been added to your inventory.`,
-    });
-    
-    // Reset form
+  // Populate form when editing
+  useEffect(() => {
+    if (existingItem && open) {
+      setName(existingItem.name);
+      setCategory(existingItem.category);
+      setFrequency(existingItem.frequency);
+      setPrice(existingItem.price ? existingItem.price.toString() : "");
+      setNote(existingItem.note || "");
+      setDate(existingItem.needBy ? new Date(existingItem.needBy) : undefined);
+    } else if (!open && !existingItem) {
+      // Reset when closing add dialog
+      resetForm();
+    }
+  }, [existingItem, open]);
+
+  const resetForm = () => {
     setName("");
     setCategory("groceries");
     setFrequency("weekly");
     setPrice("");
     setNote("");
     setDate(undefined);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    
+    const itemData = {
+      name,
+      category,
+      frequency,
+      price: price ? parseFloat(price) : undefined,
+      note: note || undefined,
+      needBy: date ? date.toISOString() : undefined
+    };
+
+    if (isEditMode && onEditItem && existingItem) {
+      onEditItem(existingItem.id, itemData);
+      toast({
+        title: "Item Updated",
+        description: `${name} has been updated.`,
+      });
+    } else if (onAddItem) {
+      onAddItem(itemData);
+      toast({
+        title: "Item Added",
+        description: `${name} has been added to your inventory.`,
+      });
+      resetForm();
+    }
+    
     setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 shadow-md hover:shadow-lg transition-all">
-          <Plus className="w-4 h-4" /> Add Item
-        </Button>
+        {trigger || (
+          <Button className="gap-2 shadow-md hover:shadow-lg transition-all">
+            <Plus className="w-4 h-4" /> Add Item
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-serif text-2xl text-primary">Add New Item</DialogTitle>
+          <DialogTitle className="font-serif text-2xl text-primary">
+            {isEditMode ? "Edit Item" : "Add New Item"}
+          </DialogTitle>
           <DialogDescription>
-            Add a new item to track in your household inventory.
+            {isEditMode ? "Update the details for this item." : "Add a new item to track in your household inventory."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -92,7 +127,7 @@ export function AddItemDialog({ onAddItem }: AddItemDialogProps) {
               placeholder="e.g., Olive Oil"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoFocus
+              autoFocus={!isEditMode}
               required
             />
           </div>
@@ -170,6 +205,13 @@ export function AddItemDialog({ onAddItem }: AddItemDialogProps) {
                     onSelect={setDate}
                     initialFocus
                   />
+                  {date && (
+                    <div className="p-2 border-t">
+                      <Button variant="ghost" size="sm" className="w-full h-7 text-xs" onClick={() => setDate(undefined)}>
+                        Clear Date
+                      </Button>
+                    </div>
+                  )}
                 </PopoverContent>
               </Popover>
             </div>
@@ -187,7 +229,7 @@ export function AddItemDialog({ onAddItem }: AddItemDialogProps) {
           </div>
 
           <DialogFooter>
-            <Button type="submit">Add Item</Button>
+            <Button type="submit">{isEditMode ? "Save Changes" : "Add Item"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
