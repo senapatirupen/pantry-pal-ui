@@ -3,7 +3,7 @@ import { InventoryItem, ItemStatus, Category, Frequency, initialItems, monthlySt
 import { InventoryCard } from "@/components/inventory-card";
 import { AddItemDialog } from "@/components/add-item-dialog";
 import { Input } from "@/components/ui/input";
-import { Search, ShoppingBag, BarChart3, Calendar as CalendarIcon, X, SlidersHorizontal, Filter } from "lucide-react";
+import { Search, ShoppingBag, BarChart3, Calendar as CalendarIcon, X, SlidersHorizontal, Filter, LogOut, User } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -29,8 +29,18 @@ import { format, isSameDay, isAfter, isBefore, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth-context";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function Home() {
+  const { user, logout } = useAuth();
   const [items, setItems] = useState<InventoryItem[]>(initialItems);
   const [view, setView] = useState<'inventory' | 'stats'>('inventory');
   const { toast } = useToast();
@@ -148,6 +158,29 @@ export default function Home() {
                 </Button>
              </div>
              <AddItemDialog onAddItem={handleAddItem} />
+             
+             {user && (
+               <DropdownMenu>
+                 <DropdownMenuTrigger asChild>
+                   <Button variant="ghost" size="icon" className="ml-2 h-9 w-9 rounded-full bg-muted text-muted-foreground hover:text-primary">
+                     <User className="w-5 h-5" />
+                   </Button>
+                 </DropdownMenuTrigger>
+                 <DropdownMenuContent align="end">
+                   <DropdownMenuLabel>
+                     <div className="flex flex-col space-y-1">
+                       <p className="text-sm font-medium leading-none">{user.username}</p>
+                       <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                     </div>
+                   </DropdownMenuLabel>
+                   <DropdownMenuSeparator />
+                   <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive cursor-pointer">
+                     <LogOut className="w-4 h-4 mr-2" />
+                     Log out
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
+               </DropdownMenu>
+             )}
           </div>
         </div>
       </header>
