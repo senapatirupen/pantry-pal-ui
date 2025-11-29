@@ -1,10 +1,9 @@
-import { InventoryItem, ItemStatus } from "@/lib/mock-data";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, AlertTriangle, X, Package, Calendar, DollarSign, StickyNote, Clock, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Check, AlertTriangle, X, Package, Calendar, DollarSign, StickyNote, Clock, MoreHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow, format } from "date-fns";
+import { format } from "date-fns";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AddItemDialog } from "./add-item-dialog";
 import { useState } from "react";
 import {
   AlertDialog,
@@ -25,26 +23,39 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface InventoryCardProps {
-  item: InventoryItem;
-  onUpdateStatus: (id: string, status: ItemStatus) => void;
-  onDelete: (id: string) => void;
-  onEdit: (id: string, updates: Partial<InventoryItem>) => void;
+interface InventoryItem {
+  id: string;
+  name: string;
+  category: "groceries" | "household" | "medicine" | "personal_care" | "other";
+  status: "in_stock" | "low" | "out_of_stock";
+  frequency: "daily" | "weekly" | "monthly" | "occasional";
+  price?: number;
+  note?: string;
+  needBy?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export function InventoryCard({ item, onUpdateStatus, onDelete, onEdit }: InventoryCardProps) {
+interface InventoryCardProps {
+  item: InventoryItem;
+  onStatusChange: (status: "in_stock" | "low" | "out_of_stock") => void;
+  onDelete: () => void;
+  onEdit: () => void;
+}
+
+export function InventoryCard({ item, onStatusChange, onDelete, onEdit }: InventoryCardProps) {
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
   const statusColors = {
-    'in-stock': "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20",
+    'in_stock': "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20",
     'low': "bg-yellow-500/10 text-yellow-700 border-yellow-500/20 hover:bg-yellow-500/20",
-    'out-of-stock': "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20",
+    'out_of_stock': "bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20",
   };
 
   const statusLabels = {
-    'in-stock': "In Stock",
+    'in_stock': "In Stock",
     'low': "Running Low",
-    'out-of-stock': "Out of Stock",
+    'out_of_stock': "Out of Stock",
   };
 
   const frequencyColors = {
@@ -65,17 +76,7 @@ export function InventoryCard({ item, onUpdateStatus, onDelete, onEdit }: Invent
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {/* Edit Trigger via wrapper */}
-              <AddItemDialog 
-                existingItem={item} 
-                onEditItem={onEdit}
-                trigger={
-                  <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
-                    <Pencil className="w-4 h-4 mr-2" />
-                    Edit
-                  </div>
-                }
-              />
+              <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
@@ -97,7 +98,7 @@ export function InventoryCard({ item, onUpdateStatus, onDelete, onEdit }: Invent
               {item.category && (
                 <span className="text-xs text-muted-foreground capitalize flex items-center gap-1">
                   <Package className="w-3 h-3" />
-                  {item.category}
+                  {item.category.replace('_', ' ')}
                 </span>
               )}
             </div>
@@ -109,7 +110,7 @@ export function InventoryCard({ item, onUpdateStatus, onDelete, onEdit }: Invent
           <div className="mb-3">
             <h3 className="text-lg font-bold text-foreground leading-tight mb-1">{item.name}</h3>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>Updated {formatDistanceToNow(new Date(item.lastUpdated))} ago</span>
+              <span>Updated {format(new Date(item.updatedAt), 'MMM d, yyyy')}</span>
               {item.price && (
                 <span className="flex items-center text-foreground font-medium">
                   <DollarSign className="w-3 h-3 mr-0.5" />
@@ -141,8 +142,8 @@ export function InventoryCard({ item, onUpdateStatus, onDelete, onEdit }: Invent
           <Button 
             variant="ghost" 
             size="sm" 
-            className={cn("h-8 w-full hover:bg-primary/20 hover:text-primary", item.status === 'in-stock' && "bg-primary/10 text-primary")}
-            onClick={() => onUpdateStatus(item.id, 'in-stock')}
+            className={cn("h-8 w-full hover:bg-primary/20 hover:text-primary", item.status === 'in_stock' && "bg-primary/10 text-primary")}
+            onClick={() => onStatusChange('in_stock')}
             data-testid={`btn-stock-${item.id}`}
           >
             <Check className="w-4 h-4 mr-1" />
@@ -153,7 +154,7 @@ export function InventoryCard({ item, onUpdateStatus, onDelete, onEdit }: Invent
             variant="ghost" 
             size="sm" 
             className={cn("h-8 w-full hover:bg-yellow-500/20 hover:text-yellow-700", item.status === 'low' && "bg-yellow-500/10 text-yellow-700")}
-            onClick={() => onUpdateStatus(item.id, 'low')}
+            onClick={() => onStatusChange('low')}
             data-testid={`btn-low-${item.id}`}
           >
             <AlertTriangle className="w-4 h-4 mr-1" />
@@ -163,8 +164,8 @@ export function InventoryCard({ item, onUpdateStatus, onDelete, onEdit }: Invent
           <Button 
             variant="ghost" 
             size="sm" 
-            className={cn("h-8 w-full hover:bg-destructive/20 hover:text-destructive", item.status === 'out-of-stock' && "bg-destructive/10 text-destructive")}
-            onClick={() => onUpdateStatus(item.id, 'out-of-stock')}
+            className={cn("h-8 w-full hover:bg-destructive/20 hover:text-destructive", item.status === 'out_of_stock' && "bg-destructive/10 text-destructive")}
+            onClick={() => onStatusChange('out_of_stock')}
             data-testid={`btn-out-${item.id}`}
           >
             <X className="w-4 h-4 mr-1" />
@@ -184,7 +185,7 @@ export function InventoryCard({ item, onUpdateStatus, onDelete, onEdit }: Invent
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={() => onDelete(item.id)}
+              onClick={onDelete}
               className="bg-destructive hover:bg-destructive/90"
             >
               Delete
@@ -195,3 +196,5 @@ export function InventoryCard({ item, onUpdateStatus, onDelete, onEdit }: Invent
     </>
   );
 }
+
+export default InventoryCard;

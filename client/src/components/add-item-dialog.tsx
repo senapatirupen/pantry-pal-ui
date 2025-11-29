@@ -19,104 +19,112 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { Category, Frequency, InventoryItem } from "@/lib/mock-data";
-import { Plus, Calendar as CalendarIcon, Edit2 } from "lucide-react";
+import { Plus, Calendar as CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
-interface AddItemDialogProps {
-  onAddItem?: (item: Omit<InventoryItem, 'id' | 'lastUpdated' | 'status'>) => void;
-  onEditItem?: (id: string, item: Partial<InventoryItem>) => void;
-  existingItem?: InventoryItem;
-  trigger?: React.ReactNode;
+interface InventoryItem {
+  id: string;
+  name: string;
+  category: "groceries" | "household" | "medicine" | "personal_care" | "other";
+  status: "in_stock" | "low" | "out_of_stock";
+  frequency: "daily" | "weekly" | "monthly" | "occasional";
+  price?: number;
+  note?: string;
+  needBy?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export function AddItemDialog({ onAddItem, onEditItem, existingItem, trigger }: AddItemDialogProps) {
-  const isEditMode = !!existingItem;
+interface AddItemDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (item: Omit<InventoryItem, "id" | "createdAt" | "updatedAt">) => void;
+  initialData?: InventoryItem;
+  isEditing?: boolean;
+}
+
+export function AddItemDialog({ open, onOpenChange, onSubmit, initialData, isEditing }: AddItemDialogProps) {
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<Category>("groceries");
-  const [frequency, setFrequency] = useState<Frequency>("weekly");
+  const [category, setCategory] = useState<"groceries" | "household" | "medicine" | "personal_care" | "other">("groceries");
+  const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly" | "occasional">("weekly");
+  const [status, setStatus] = useState<"in_stock" | "low" | "out_of_stock">("in_stock");
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState<Date>();
-  const [open, setOpen] = useState(false);
-  
   const { toast } = useToast();
 
-  // Populate form when editing
   useEffect(() => {
-    if (existingItem && open) {
-      setName(existingItem.name);
-      setCategory(existingItem.category);
-      setFrequency(existingItem.frequency);
-      setPrice(existingItem.price ? existingItem.price.toString() : "");
-      setNote(existingItem.note || "");
-      setDate(existingItem.needBy ? new Date(existingItem.needBy) : undefined);
-    } else if (!open && !existingItem) {
-      // Reset when closing add dialog
+    if (initialData && open) {
+      setName(initialData.name);
+      setCategory(initialData.category);
+      setFrequency(initialData.frequency);
+      setStatus(initialData.status);
+      setPrice(initialData.price ? initialData.price.toString() : "");
+      setNote(initialData.note || "");
+      setDate(initialData.needBy ? new Date(initialData.needBy) : undefined);
+    } else if (!open && !initialData) {
       resetForm();
     }
-  }, [existingItem, open]);
+  }, [initialData, open]);
 
   const resetForm = () => {
     setName("");
     setCategory("groceries");
     setFrequency("weekly");
+    setStatus("in_stock");
     setPrice("");
     setNote("");
     setDate(undefined);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
     
+    if (!name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Item name is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const itemData = {
-      name,
+      name: name.trim(),
       category,
+      status,
       frequency,
       price: price ? parseFloat(price) : undefined,
       note: note || undefined,
-      needBy: date ? date.toISOString() : undefined
+      needBy: date ? date.toISOString() : undefined,
     };
 
-    if (isEditMode && onEditItem && existingItem) {
-      onEditItem(existingItem.id, itemData);
-      toast({
-        title: "Item Updated",
-        description: `${name} has been updated.`,
-      });
-    } else if (onAddItem) {
-      onAddItem(itemData);
-      toast({
-        title: "Item Added",
-        description: `${name} has been added to your inventory.`,
-      });
+    try {
+      await onSubmit(itemData);
       resetForm();
+    } catch (error) {
+      console.error("Submit error:", error);
     }
-    
-    setOpen(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        {trigger || (
-          <Button className="gap-2 shadow-md hover:shadow-lg transition-all">
-            <Plus className="w-4 h-4" /> Add Item
-          </Button>
-        )}
+        <Button className="gap-2 shadow-md hover:shadow-lg transition-all">
+          <Plus className="w-4 h-4" /> Add Item
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl text-primary">
-            {isEditMode ? "Edit Item" : "Add New Item"}
+            {isEditing ? "Edit Item" : "Add New Item"}
           </DialogTitle>
           <DialogDescription>
-            {isEditMode ? "Update the details for this item." : "Add a new item to track in your household inventory."}
+            {isEditing ? "Update the details for this item." : "Add a new item to track in your household inventory."}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
@@ -127,7 +135,7 @@ export function AddItemDialog({ onAddItem, onEditItem, existingItem, trigger }: 
               placeholder="e.g., Olive Oil"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoFocus={!isEditMode}
+              autoFocus={!isEditing}
               required
             />
           </div>
@@ -135,7 +143,7 @@ export function AddItemDialog({ onAddItem, onEditItem, existingItem, trigger }: 
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={(val) => setCategory(val as Category)}>
+              <Select value={category} onValueChange={(val) => setCategory(val as any)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -143,7 +151,7 @@ export function AddItemDialog({ onAddItem, onEditItem, existingItem, trigger }: 
                   <SelectItem value="groceries">Groceries</SelectItem>
                   <SelectItem value="household">Household</SelectItem>
                   <SelectItem value="medicine">Medicine</SelectItem>
-                  <SelectItem value="personal">Personal Care</SelectItem>
+                  <SelectItem value="personal_care">Personal Care</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -151,7 +159,7 @@ export function AddItemDialog({ onAddItem, onEditItem, existingItem, trigger }: 
             
             <div className="grid gap-2">
               <Label htmlFor="frequency">Frequency</Label>
-              <Select value={frequency} onValueChange={(val) => setFrequency(val as Frequency)}>
+              <Select value={frequency} onValueChange={(val) => setFrequency(val as any)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select frequency" />
                 </SelectTrigger>
@@ -188,11 +196,12 @@ export function AddItemDialog({ onAddItem, onEditItem, existingItem, trigger }: 
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
                     className={cn(
                       "w-full justify-start text-left font-normal",
                       !date && "text-muted-foreground"
                     )}
+                    type="button"
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {date ? format(date, "PPP") : <span>Pick a date</span>}
@@ -229,10 +238,12 @@ export function AddItemDialog({ onAddItem, onEditItem, existingItem, trigger }: 
           </div>
 
           <DialogFooter>
-            <Button type="submit">{isEditMode ? "Save Changes" : "Add Item"}</Button>
+            <Button type="submit">{isEditing ? "Save Changes" : "Add Item"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
 }
+
+export default AddItemDialog;

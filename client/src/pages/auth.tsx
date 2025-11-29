@@ -9,7 +9,7 @@ import { ShoppingBag, ArrowRight, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function AuthPage() {
-  const { login, isLoading } = useAuth();
+  const { login, register, isLoading } = useAuth();
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("login");
   
@@ -17,17 +17,45 @@ export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
+  const [error, setError] = useState("");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
-    login(email, password);
+    setError("");
+    
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    try {
+      await login(email, password);
+      setLocation("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Login failed");
+    }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !username) return;
-    login(email, password); // For mock purposes, registration just logs you in
+    setError("");
+    
+    if (!email || !password || !username) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    try {
+      await register(email, username, password);
+      setLocation("/");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Registration failed");
+    }
   };
 
   return (
@@ -61,6 +89,11 @@ export default function AuthPage() {
               
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <Input 
@@ -69,6 +102,7 @@ export default function AuthPage() {
                       placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoading}
                       required 
                     />
                   </div>
@@ -87,8 +121,10 @@ export default function AuthPage() {
                     <Input 
                       id="login-password" 
                       type="password"
+                      placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
                       required 
                     />
                   </div>
@@ -109,6 +145,11 @@ export default function AuthPage() {
               
               <TabsContent value="register">
                 <form onSubmit={handleRegister} className="space-y-4">
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="register-username">Username</Label>
                     <Input 
@@ -116,6 +157,7 @@ export default function AuthPage() {
                       placeholder="johndoe"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
+                      disabled={isLoading}
                       required 
                     />
                   </div>
@@ -127,6 +169,7 @@ export default function AuthPage() {
                       placeholder="name@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoading}
                       required 
                     />
                   </div>
@@ -135,8 +178,10 @@ export default function AuthPage() {
                     <Input 
                       id="register-password" 
                       type="password"
+                      placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
                       required 
                     />
                   </div>

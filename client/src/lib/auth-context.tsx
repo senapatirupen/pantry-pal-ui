@@ -1,66 +1,119 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { apiService } from "./api";
 
 type User = {
+  id: string;
   username: string;
   email: string;
 };
 
 type AuthContextType = {
   user: User | null;
-  login: (email: string, password?: string) => void;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, username: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
   isLoading: boolean;
+  isAuthenticated: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Initialize from localStorage if available to persist mock session across reloads
   const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem("mock_user");
+    const saved = localStorage.getItem("pantrypal_user");
     return saved ? JSON.parse(saved) : null;
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!user);
   const { toast } = useToast();
 
-  const login = (email: string, password?: string) => {
-    setIsLoading(true);
-    // Simulate API delay
-    setTimeout(() => {
-      // Default credentials for local development
-      if (email === "admin@local.com" && password !== "admin123") {
-        setIsLoading(false);
-        toast({
-          title: "Login Failed",
-          description: "Invalid password for default admin account.",
-          variant: "destructive",
-        });
-        return;
+  // Verify token on app load
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const token = localStorage.getItem("pantrypal_auth_token");
+      if (token) {
+        try {
+          const { user: verifiedUser } = await apiService.verifyToken();
+          setUser(verifiedUser);
+          setIsAuthenticated(true);
+          localStorage.setItem("pantrypal_user", JSON.stringify(verifiedUser));
+        } catch (error) {
+          apiService.clearAuth();
+          setUser(null);
+          setIsAuthenticated(false);
+        }
       }
+    };
 
-      const mockUser = { username: email.split('@')[0], email };
-      setUser(mockUser);
-      localStorage.setItem("mock_user", JSON.stringify(mockUser));
-      setIsLoading(false);
+    verifyAuth();
+  }, []);
+
+  const login = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const response = await apiService.login(email, password);
+      setUser(response.user);
+      setIsAuthenticated(true);
       toast({
         title: "Welcome back!",
-        description: `Successfully logged in as ${mockUser.username}`,
+        description: `Successfully logged in as ${response.user.username}`,
       });
-    }, 1000);
+    } catch (error) {
+      toast({
+        title: "Login Failed",
+        description: error instanceof Error ? error.message : "Invalid credentials",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("mock_user");
-    toast({
-      title: "Logged out",
-      description: "See you next time!",
-    });
+  const register = async (email: string, username: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const response = await apiService.register(email, username, password);
+      setUser(response.user);
+      setIsAuthenticated(true);
+      toast({
+        title: "Account Created!",
+        description: `Welcome ${response.user.username}!`,
+      });
+    } catch (error) {
+      toast({
+        title: "Registration Failed",
+        description: error instanceof Error ? error.message : "Could not create account",
+        variant: "destructive",
+      });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    setIsLoading(true);
+    try {
+      await apiService.logout();
+      setUser(null);
+      setIsAuthenticated(false);
+      toast({
+        title: "Logged out",
+        description: "See you next time!",
+      });
+    } catch (error) {
+      apiService.clearAuth();
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );

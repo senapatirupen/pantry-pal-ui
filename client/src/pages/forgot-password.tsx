@@ -1,89 +1,222 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
+import { apiService } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingBag, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
-import { Link } from "wouter";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Loader2, Check } from "lucide-react";
 
 export default function ForgotPasswordPage() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [step, setStep] = useState<"email" | "token" | "success">("email");
   const [email, setEmail] = useState("");
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [token, setToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleRequestReset = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    setError("");
     
+    if (!email) {
+      setError("Please enter your email");
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await apiService.forgotPassword(email);
+      setStep("token");
+      toast({
+        title: "Email sent",
+        description: "Check your email for password reset instructions",
+      });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to send reset email");
+    } finally {
       setIsLoading(false);
-      setIsSubmitted(true);
-    }, 1500);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!token || !newPassword || !confirmPassword) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await apiService.resetPassword(token, newPassword);
+      setStep("success");
+      toast({
+        title: "Password reset successful",
+        description: "You can now login with your new password",
+      });
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to reset password");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="bg-primary/10 p-3 rounded-full w-fit mx-auto mb-4">
-            <ShoppingBag className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="font-serif text-3xl font-bold text-foreground">PantryPal</h1>
-        </div>
+        {step !== "success" && (
+          <Button
+            variant="ghost"
+            className="mb-4"
+            onClick={() => setLocation("/auth")}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Login
+          </Button>
+        )}
 
         <Card className="border-muted shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl font-serif text-center">Reset Password</CardTitle>
-            <CardDescription className="text-center">
-              Enter your email address and we'll send you a link to reset your password.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {isSubmitted ? (
-              <div className="text-center py-4 space-y-4 animate-in fade-in zoom-in-95">
-                <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="w-8 h-8 text-green-600" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-medium text-lg">Check your email</h3>
-                  <p className="text-sm text-muted-foreground">
-                    We've sent a password reset link to <strong>{email}</strong>
-                  </p>
-                </div>
-                <Button asChild variant="outline" className="mt-4 w-full">
-                  <Link href="/auth">Back to Login</Link>
-                </Button>
-              </div>
-            ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input 
-                      id="email" 
-                      type="email" 
+          {step === "email" && (
+            <>
+              <CardHeader>
+                <CardTitle>Reset Password</CardTitle>
+                <CardDescription>
+                  Enter your email to receive password reset instructions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleRequestReset} className="space-y-4">
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      type="email"
                       placeholder="name@example.com"
-                      className="pl-9"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      required 
+                      disabled={isLoading}
+                      required
                     />
                   </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      "Send Reset Link"
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </>
+          )}
+
+          {step === "token" && (
+            <>
+              <CardHeader>
+                <CardTitle>Create New Password</CardTitle>
+                <CardDescription>
+                  Enter the reset token from your email and create a new password
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      {error}
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="token">Reset Token</Label>
+                    <Input
+                      id="token"
+                      placeholder="Enter token from email"
+                      value={token}
+                      onChange={(e) => setToken(e.target.value)}
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">New Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm">Confirm Password</Label>
+                    <Input
+                      id="confirm"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={isLoading}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Resetting...
+                      </>
+                    ) : (
+                      "Reset Password"
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </>
+          )}
+
+          {step === "success" && (
+            <>
+              <CardHeader>
+                <CardTitle>Password Reset Successful</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <div className="bg-green-50 p-4 rounded-full w-fit mx-auto">
+                  <Check className="w-8 h-8 text-green-600" />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Sending Link..." : "Send Reset Link"}
+                <p className="text-muted-foreground">
+                  Your password has been successfully reset. You can now login with your new password.
+                </p>
+                <Button onClick={() => setLocation("/auth")} className="w-full">
+                  Go to Login
                 </Button>
-              </form>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-center border-t bg-muted/20 p-4">
-            <Link href="/auth" className="text-sm text-muted-foreground hover:text-primary flex items-center">
-              <ArrowLeft className="w-3 h-3 mr-1" /> Back to Login
-            </Link>
-          </CardFooter>
+              </CardContent>
+            </>
+          )}
         </Card>
       </div>
     </div>
