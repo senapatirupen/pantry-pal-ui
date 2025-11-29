@@ -21,13 +21,13 @@ export default function AuthPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
-    login(email);
+    login(email, password);
   };
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password || !username) return;
-    login(email); // For mock purposes, registration just logs you in
+    login(email, password); // For mock purposes, registration just logs you in
   };
 
   return (

@@ -8,7 +8,7 @@ type User = {
 
 type AuthContextType = {
   user: User | null;
-  login: (email: string) => void;
+  login: (email: string, password?: string) => void;
   logout: () => void;
   isLoading: boolean;
 };
@@ -24,10 +24,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const login = (email: string) => {
+  const login = (email: string, password?: string) => {
     setIsLoading(true);
     // Simulate API delay
     setTimeout(() => {
+      // Default credentials for local development
+      if (email === "admin@local.com" && password !== "admin123") {
+        setIsLoading(false);
+        toast({
+          title: "Login Failed",
+          description: "Invalid password for default admin account.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const mockUser = { username: email.split('@')[0], email };
       setUser(mockUser);
       localStorage.setItem("mock_user", JSON.stringify(mockUser));
