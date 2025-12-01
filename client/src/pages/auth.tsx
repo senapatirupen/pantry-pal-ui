@@ -67,6 +67,11 @@ export default function AuthPage() {
           </div>
           <h1 className="font-serif text-3xl font-bold text-foreground">PantryPal</h1>
           <p className="text-muted-foreground">Manage your household inventory with ease.</p>
+          <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-4 text-xs">
+            <p className="font-semibold text-blue-900 mb-1">Demo Credentials:</p>
+            <p className="text-blue-800">Email: <code className="bg-white px-2 py-1 rounded">demo@example.com</code></p>
+            <p className="text-blue-800">Password: <code className="bg-white px-2 py-1 rounded">demo123</code></p>
+          </div>
         </div>
 
         <Card className="border-muted shadow-lg">

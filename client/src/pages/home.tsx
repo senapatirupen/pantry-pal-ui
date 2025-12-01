@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Plus, LogOut, Search, AlertCircle } from "lucide-react";
 import {
   DropdownMenu,
@@ -60,7 +58,6 @@ export default function Home() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [frequencyFilter, setFrequencyFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"grid" | "insights">("grid");
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -75,7 +72,6 @@ export default function Home() {
   // Fetch items on mount
   useEffect(() => {
     loadItems();
-    loadStats();
   }, []);
 
   // Apply filters
@@ -105,19 +101,6 @@ export default function Home() {
     }
   };
 
-  const loadStats = async () => {
-    try {
-      const [summary, spending] = await Promise.all([
-        apiService.getStatsSummary(),
-        apiService.getMonthlySpending(12),
-      ]);
-
-      setStats(summary);
-      setMonthlyData(spending);
-    } catch (error) {
-      console.error("Load stats error:", error);
-    }
-  };
 
   const applyFilters = () => {
     let filtered = [...items];
@@ -295,13 +278,7 @@ export default function Home() {
           isEditing={!!editingItem}
         />
 
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="grid">Inventory</TabsTrigger>
-            <TabsTrigger value="insights">Insights</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="grid" className="space-y-6">
+        <div className="space-y-6">
             {/* Filters */}
             <Card>
               <CardHeader>
@@ -411,70 +388,7 @@ export default function Home() {
                 ))}
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="insights" className="space-y-6">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Total Items</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{stats.totalItems}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-yellow-600">{stats.lowStockItems}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-red-600">{stats.outOfStockItems}</div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Avg Price</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">${stats.averagePrice.toFixed(2)}</div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Monthly Spending Chart */}
-            {monthlyData.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Monthly Spending</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={monthlyData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="amount" fill="#8b9467" name="Spending ($)" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
+        </div>
       </main>
     </div>
   );
