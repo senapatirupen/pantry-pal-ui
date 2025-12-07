@@ -62,16 +62,11 @@ export default function AuthPage() {
     <div className="min-h-screen w-full flex items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <div className="bg-primary/10 p-3 rounded-full w-fit mx-auto mb-4">
+          {/* <div className="bg-primary/10 p-3 rounded-full w-fit mx-auto mb-4">
             <ShoppingBag className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="font-serif text-3xl font-bold text-foreground">PantryPal</h1>
-          <p className="text-muted-foreground">Manage your household inventory with ease.</p>
-          <div className="bg-blue-50 border border-blue-200 rounded p-3 mt-4 text-xs">
-            <p className="font-semibold text-blue-900 mb-1">Demo Credentials:</p>
-            <p className="text-blue-800">Email: <code className="bg-white px-2 py-1 rounded">demo@example.com</code></p>
-            <p className="text-blue-800">Password: <code className="bg-white px-2 py-1 rounded">demo123</code></p>
-          </div>
+          </div> */}
+          <h1 className="font-serif text-3xl font-bold text-foreground">FinanceTBag</h1>
+          <p className="text-muted-foreground">Tracking every item protects your money.</p>
         </div>
 
         <Card className="border-muted shadow-lg">

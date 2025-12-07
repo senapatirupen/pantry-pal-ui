@@ -21,8 +21,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
+    // const saved = localStorage.getItem("pantrypal_user");
+    // return saved ? JSON.parse(saved) : null;
     const saved = localStorage.getItem("pantrypal_user");
-    return saved ? JSON.parse(saved) : null;
+    try {
+      return saved && saved !== "undefined" ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(!!user);

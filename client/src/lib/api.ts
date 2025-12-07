@@ -182,10 +182,12 @@ class ApiService {
     category?: string;
     frequency?: string;
   }): Promise<InventoryItem[]> {
+    console.log("Calling backend with filter", filters);
     const queryString = filters
       ? "?" + new URLSearchParams(Object.entries(filters).filter(([, v]) => v) as any).toString()
       : "";
-    return this.request<InventoryItem[]>(`/items${queryString}`, {
+    // return this.request<InventoryItem[]>(`/items${queryString}`, {
+    return this.request<InventoryItem[]>(`/items/all`, {
       method: "GET",
     });
   }

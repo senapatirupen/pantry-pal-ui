@@ -86,8 +86,9 @@ export default function Home() {
       if (statusFilter !== "all") filters.status = statusFilter;
       if (categoryFilter !== "all") filters.category = categoryFilter;
       if (frequencyFilter !== "all") filters.frequency = frequencyFilter;
-
       const data = await apiService.getItems(filters);
+      console.log("Fetched items raw:", data);
+      console.log("Length:", Array.isArray(data) ? data.length : "not array");
       setItems(data);
     } catch (error) {
       toast({
@@ -102,29 +103,60 @@ export default function Home() {
   };
 
 
+  // const applyFilters = () => {
+  //   let filtered = [...items];
+
+  //   // Search filter
+  //   if (searchQuery) {
+  //     filtered = filtered.filter((item) =>
+  //       item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  //     );
+  //   }
+
+  //   // Status filter
+  //   if (statusFilter !== "all") {
+  //     filtered = filtered.filter((item) => item.status === statusFilter);
+  //   }
+
+  //   // Category filter
+  //   if (categoryFilter !== "all") {
+  //     filtered = filtered.filter((item) => item.category === categoryFilter);
+  //   }
+
+  //   // Frequency filter
+  //   if (frequencyFilter !== "all") {
+  //     filtered = filtered.filter((item) => item.frequency === frequencyFilter);
+  //   }
+
+  //   setFilteredItems(filtered);
+  // };
+
   const applyFilters = () => {
-    let filtered = [...items];
+    // SAFE ACCESS: Always ensure items is an array
+    const safeItems = Array.isArray(items) ? items : [];
+    let filtered = [...safeItems];
 
     // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter((item) =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(item =>
+        item?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item?.note && item.note.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
     // Status filter
     if (statusFilter !== "all") {
-      filtered = filtered.filter((item) => item.status === statusFilter);
+      filtered = filtered.filter(item => item?.status === statusFilter);
     }
 
     // Category filter
     if (categoryFilter !== "all") {
-      filtered = filtered.filter((item) => item.category === categoryFilter);
+      filtered = filtered.filter(item => item?.category === categoryFilter);
     }
 
     // Frequency filter
     if (frequencyFilter !== "all") {
-      filtered = filtered.filter((item) => item.frequency === frequencyFilter);
+      filtered = filtered.filter(item => item?.frequency === frequencyFilter);
     }
 
     setFilteredItems(filtered);
@@ -133,7 +165,12 @@ export default function Home() {
   const handleAddItem = async (newItem: Omit<InventoryItem, "id" | "createdAt" | "updatedAt">) => {
     try {
       const created = await apiService.createItem(newItem);
-      setItems((prev) => [created, ...prev]);
+      // setItems((prev) => [created, ...prev]);
+      setItems((prev) => {
+        // Ensure prev is always an array
+        const safePrev = Array.isArray(prev) ? prev : [];
+        return [created, ...safePrev];
+      });
       setIsDialogOpen(false);
       setEditingItem(null);
       toast({
@@ -233,15 +270,15 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-serif text-2xl font-bold text-foreground">PantryPal</h1>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <h1 className="font-serif text-2xl font-bold text-foreground">FinanceTBag</h1>
+              <p className="text-sm text-muted-foreground">Tracking every item protects your money.</p>
             </div>
             <div className="flex items-center gap-3">
-              <Button 
+              <Button
                 onClick={() => {
                   setEditingItem(null);
                   setIsDialogOpen(true);
-                }} 
+                }}
                 size="sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -279,115 +316,115 @@ export default function Home() {
         />
 
         <div className="space-y-6">
-            {/* Filters */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Filter Items</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Search</label>
-                    <Input
-                      placeholder="Search items..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Status</label>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="in_stock">In Stock</SelectItem>
-                        <SelectItem value="low">Running Low</SelectItem>
-                        <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Category</label>
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="groceries">Groceries</SelectItem>
-                        <SelectItem value="household">Household</SelectItem>
-                        <SelectItem value="medicine">Medicine</SelectItem>
-                        <SelectItem value="personal_care">Personal Care</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Frequency</label>
-                    <Select value={frequencyFilter} onValueChange={setFrequencyFilter}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Frequencies</SelectItem>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="occasional">Occasional</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+          {/* Filters */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Filter Items</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Search</label>
+                  <Input
+                    placeholder="Search items..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
                 </div>
 
-                <Button variant="outline" className="w-full sm:w-auto" onClick={clearFilters}>
-                  Clear Filters
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Status</label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="in_stock">In Stock</SelectItem>
+                      <SelectItem value="low">Running Low</SelectItem>
+                      <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Category</label>
+                  <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="groceries">Groceries</SelectItem>
+                      <SelectItem value="household">Household</SelectItem>
+                      <SelectItem value="medicine">Medicine</SelectItem>
+                      <SelectItem value="personal_care">Personal Care</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Frequency</label>
+                  <Select value={frequencyFilter} onValueChange={setFrequencyFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Frequencies</SelectItem>
+                      <SelectItem value="daily">Daily</SelectItem>
+                      <SelectItem value="weekly">Weekly</SelectItem>
+                      <SelectItem value="monthly">Monthly</SelectItem>
+                      <SelectItem value="occasional">Occasional</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button variant="outline" className="w-full sm:w-auto" onClick={clearFilters}>
+                Clear Filters
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Inventory Grid */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Loading items...</p>
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No items found</p>
+                <Button
+                  onClick={() => {
+                    setEditingItem(null);
+                    setIsDialogOpen(true);
+                  }}
+                  variant="link"
+                  className="mt-4"
+                >
+                  Add your first item
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Inventory Grid */}
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <p className="text-muted-foreground">Loading items...</p>
-              </div>
-            ) : filteredItems.length === 0 ? (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">No items found</p>
-                  <Button 
-                    onClick={() => {
-                      setEditingItem(null);
-                      setIsDialogOpen(true);
-                    }} 
-                    variant="link" 
-                    className="mt-4"
-                  >
-                    Add your first item
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredItems.map((item) => (
-                  <InventoryCard
-                    key={item.id}
-                    item={item}
-                    onStatusChange={(status) => handleStatusUpdate(item.id, status)}
-                    onEdit={() => {
-                      setEditingItem(item);
-                      setIsDialogOpen(true);
-                    }}
-                    onDelete={() => handleDeleteItem(item.id)}
-                  />
-                ))}
-              </div>
-            )}
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredItems.map((item) => (
+                <InventoryCard
+                  key={item.id}
+                  item={item}
+                  onStatusChange={(status) => handleStatusUpdate(item.id, status)}
+                  onEdit={() => {
+                    setEditingItem(item);
+                    setIsDialogOpen(true);
+                  }}
+                  onDelete={() => handleDeleteItem(item.id)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>
