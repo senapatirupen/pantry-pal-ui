@@ -1,7 +1,7 @@
 // API Base URL configuration
 export const API_CONFIG = {
   // Change this to match your Spring Boot backend URL
-  BASE_URL: import.meta.env.VITE_API_URL || "http://localhost:9091/api/v1",
+  BASE_URL: import.meta.env.VITE_API_URL || "/api/v1",
   
   // Timeouts (in milliseconds)
   TIMEOUT: 30000,
@@ -37,7 +37,7 @@ export interface AuthResponse {
 export interface InventoryItem {
   id: string;
   name: string;
-  category: "groceries" | "household" | "medicine" | "personal_care" | "other";
+  category: "groceries" | "household" | "medicine" | "personal_care" | "other" | "vegetables" | "fruits" | "clothing" | "stationery";
   status: "in_stock" | "low" | "out_of_stock";
   frequency: "daily" | "weekly" | "monthly" | "occasional";
   price?: number;

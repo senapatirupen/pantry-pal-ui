@@ -22,7 +22,7 @@ import { InventoryCard } from "@/components/inventory-card";
 interface InventoryItem {
   id: string;
   name: string;
-  category: "groceries" | "household" | "medicine" | "personal_care" | "other";
+  category: "groceries" | "household" | "medicine" | "personal_care" | "other" | "vegetables" | "fruits" | "clothing" | "stationery";
   status: "in_stock" | "low" | "out_of_stock";
   frequency: "daily" | "weekly" | "monthly" | "occasional";
   price?: number;
@@ -359,6 +359,10 @@ export default function Home() {
                       <SelectItem value="household">Household</SelectItem>
                       <SelectItem value="medicine">Medicine</SelectItem>
                       <SelectItem value="personal_care">Personal Care</SelectItem>
+                      <SelectItem value="vegetables">Vegetables</SelectItem>
+                      <SelectItem value="fruits">Fruits</SelectItem>
+                      <SelectItem value="clothing">Clothing</SelectItem>
+                      <SelectItem value="stationery">Stationery</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
@@ -427,6 +431,40 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-muted bg-white mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+
+            {/* Left: Copyright */}
+            <p className="text-sm text-muted-foreground text-center md:text-left">
+              © {new Date().getFullYear()} FinanceTBag. All rights reserved.
+            </p>
+
+            {/* Right: Links */}
+            <div className="flex items-center gap-5 text-sm">
+              <span onClick={() => setLocation("/about")} className="cursor-pointer hover:text-foreground">
+                About Us
+              </span>
+
+              <span onClick={() => setLocation("/contact")} className="cursor-pointer hover:text-foreground">
+                Contact Us
+              </span>
+
+              <span onClick={() => setLocation("/privacy")} className="cursor-pointer hover:text-foreground">
+                Privacy Policy
+              </span>
+
+              <span onClick={() => setLocation("/terms")} className="cursor-pointer hover:text-foreground">
+                Terms of Use
+              </span>
+            </div>
+
+          </div>
+        </div>
+      </footer>
+
     </div>
   );
 }

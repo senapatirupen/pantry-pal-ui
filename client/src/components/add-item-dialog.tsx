@@ -29,7 +29,7 @@ import { format } from "date-fns";
 interface InventoryItem {
   id: string;
   name: string;
-  category: "groceries" | "household" | "medicine" | "personal_care" | "other";
+  category: "groceries" | "household" | "medicine" | "personal_care" | "other" | "vegetables" | "fruits" | "clothing" | "stationery";
   status: "in_stock" | "low" | "out_of_stock";
   frequency: "daily" | "weekly" | "monthly" | "occasional";
   price?: number;
@@ -49,7 +49,7 @@ interface AddItemDialogProps {
 
 export function AddItemDialog({ open, onOpenChange, onSubmit, initialData, isEditing }: AddItemDialogProps) {
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<"groceries" | "household" | "medicine" | "personal_care" | "other">("groceries");
+  const [category, setCategory] = useState<"groceries" | "household" | "medicine" | "personal_care" | "other" | "vegetables" | "fruits" | "clothing" | "stationery">("groceries");
   const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly" | "occasional">("weekly");
   const [status, setStatus] = useState<"in_stock" | "low" | "out_of_stock">("in_stock");
   const [price, setPrice] = useState("");
@@ -152,6 +152,10 @@ export function AddItemDialog({ open, onOpenChange, onSubmit, initialData, isEdi
                   <SelectItem value="household">Household</SelectItem>
                   <SelectItem value="medicine">Medicine</SelectItem>
                   <SelectItem value="personal_care">Personal Care</SelectItem>
+                  <SelectItem value="vegetables">Vegetables</SelectItem>
+                  <SelectItem value="fruits">Fruits</SelectItem>
+                  <SelectItem value="clothing">Clothing</SelectItem>
+                  <SelectItem value="stationery">Stationery</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -177,7 +181,7 @@ export function AddItemDialog({ open, onOpenChange, onSubmit, initialData, isEdi
             <div className="grid gap-2">
               <Label htmlFor="price">Price (Est.)</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                {/* <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span> */}
                 <Input
                   id="price"
                   type="number"

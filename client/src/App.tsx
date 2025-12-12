@@ -9,6 +9,10 @@ import AuthPage from "@/pages/auth";
 import ForgotPasswordPage from "@/pages/forgot-password";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { useEffect } from "react";
+import AboutUs from "@/pages/about-us";
+import ContactUs from "./pages/contact-us";
+import PrivacyPolicy from "./pages/privacy-policy";
+import TermsOfUse from "./pages/terms-of-use";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuth();
@@ -21,7 +25,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }, [user, isLoading, setLocation]);
 
   if (isLoading) return null; // Or a loading spinner
-  
+
   return user ? <Component /> : null;
 }
 
@@ -40,6 +44,10 @@ function Router() {
     <Switch>
       <Route path="/auth" component={AuthPage} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
+      <Route path="/about" component={AboutUs} />
+      <Route path="/contact" component={ContactUs} />
+      <Route path="/privacy" component={PrivacyPolicy} />
+      <Route path="/terms" component={TermsOfUse} />
       <Route path="/">
         <ProtectedRoute component={Home} />
       </Route>

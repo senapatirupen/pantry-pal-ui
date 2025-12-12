@@ -26,7 +26,7 @@ import {
 interface InventoryItem {
   id: string;
   name: string;
-  category: "groceries" | "household" | "medicine" | "personal_care" | "other";
+  category: "groceries" | "household" | "medicine" | "personal_care" | "other" | "vegetables" | "fruits" | "clothing" | "stationery";
   status: "in_stock" | "low" | "out_of_stock";
   frequency: "daily" | "weekly" | "monthly" | "occasional";
   price?: number;
@@ -68,7 +68,7 @@ export function InventoryCard({ item, onStatusChange, onDelete, onEdit }: Invent
   return (
     <>
       <Card className="overflow-hidden transition-all hover:shadow-md border-muted group relative">
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <div className="absolute top-2 right-2 opacity-80 group-hover:opacity-100 transition-opacity z-10">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 bg-white/80 backdrop-blur-sm">
@@ -113,7 +113,7 @@ export function InventoryCard({ item, onStatusChange, onDelete, onEdit }: Invent
               <span>Updated {format(new Date(item.updatedAt), 'MMM d, yyyy')}</span>
               {item.price && (
                 <span className="flex items-center text-foreground font-medium">
-                  <DollarSign className="w-3 h-3 mr-0.5" />
+                  {/* <DollarSign className="w-3 h-3 mr-0.5" /> */}Price&nbsp;
                   {item.price.toFixed(2)}
                 </span>
               )}
